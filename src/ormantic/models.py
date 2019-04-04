@@ -2,6 +2,7 @@ import typing
 
 import pydantic
 import sqlalchemy
+from functools import partial
 from pydantic.class_validators import Validator, make_generic_validator
 from .exceptions import MultipleMatches, NoMatch
 
@@ -45,7 +46,7 @@ class QuerySet:
             model_cls = self.model_cls
             select_from = self.table
             for part in item.split("__"):
-                model_cls = model_cls.__fields__[part].to
+                model_cls = model_cls.__fields__[part].type_.to
                 select_from = sqlalchemy.sql.join(
                     select_from, model_cls.Mapping.table
                 )
@@ -92,7 +93,7 @@ class QuerySet:
                     # Walk the relationships to the actual model class
                     # against which the comparison is being made.
                     for part in related_parts:
-                        model_cls = model_cls.__fields__[part].to
+                        model_cls = model_cls.__fields__[part].type_.to
 
                 column = model_cls.Mapping.table.columns[field_name]
 
@@ -172,7 +173,7 @@ class QuerySet:
 
         # Build the insert expression.
         expr = self.table.insert()
-        expr = expr.values(**instance.dict())
+        expr = expr.values(**instance.table_dict())
 
         # Execute the insert, and return a new model instance.
         result = await self.database.execute(expr)
@@ -205,10 +206,20 @@ class MetaModel(pydantic.main.MetaModel):
 
 
 class Model(pydantic.BaseModel, metaclass=MetaModel):
+
     def __init__(self, **kwargs):
         if "pk" in kwargs:
             kwargs[self.Mapping.pk_name] = kwargs.pop("pk")
+
         super().__init__(**kwargs)
+
+    def _process_values(self, input_data: typing.Any) -> "DictStrAny":
+        pk_only = input_data.pop("__pk_only__", False)
+        if pk_only:
+            v, _ = pydantic.validate_model(self, input_data, raise_exc=False)
+        else:
+            v = pydantic.validate_model(self, input_data)
+        return v
 
     @property
     def pk(self):
@@ -266,17 +277,46 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
         for related in select_related:
             if "__" in related:
                 first_part, remainder = related.split("__", 1)
-                model_cls = cls.__fields__[first_part].to
+                model_cls = cls.__fields__[first_part].type_.to
                 item[first_part] = model_cls.from_row(
                     row, select_related=[remainder]
                 )
             else:
-                model_cls = cls.__fields__[related].to
+                model_cls = cls.__fields__[related].type_.to
                 item[related] = model_cls.from_row(row)
 
         # Pull out the regular column values.
         for column in cls.Mapping.table.columns:
             if column.name not in item:
-                item[column.name] = row[column]
+                col_type = cls.__fields__[column.name].type_
+                value = row[column]
+                if col_type.__name__ == "ForeignKey":
+                    item[column.name] = col_type.to(pk=value, __pk_only__=True)
+                else:
+                    item[column.name] = value
 
         return cls(**item)
+
+    def table_dict(self) -> "DictStrAny":
+        get_key = self._get_key_factory(False)
+        get_key = partial(get_key, self.fields)
+
+        def _get_td_value(v: typing.Any) -> typing.Any:
+            if isinstance(v, Model):
+                return v.pk
+            elif isinstance(v, list):
+                return [_get_td_value(v_) for v_ in v]
+            elif isinstance(v, dict):
+                return {k_: _get_td_value(v_) for k_, v_ in v.items()}
+            elif isinstance(v, set):
+                return {_get_td_value(v_) for v_ in v}
+            elif isinstance(v, tuple):
+                return tuple(_get_td_value(v_) for v_ in v)
+            else:
+                return v
+
+        def _td_iter():
+            for k, v in self.__values__.items():
+                yield k, _get_td_value(v)
+
+        return {get_key(k): v for k, v in _td_iter()}

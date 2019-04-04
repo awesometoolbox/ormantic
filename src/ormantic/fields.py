@@ -255,4 +255,4 @@ def ForeignKey(to, *, allow_null: bool = False) -> Type[object]:
         def validate(cls, v: Any) -> Any:
             return v
 
-    return type("ForeignKey", (ForeignKeyField, ColumnFactory,), namespace)
+    return type("ForeignKey", (ForeignKeyField, ColumnFactory), namespace)
