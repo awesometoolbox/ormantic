@@ -56,10 +56,7 @@ class QuerySet:
         expr = expr.select_from(select_from)
 
         if self.filter_clauses:
-            if len(self.filter_clauses) == 1:
-                clause = self.filter_clauses[0]
-            else:
-                clause = sqlalchemy.sql.and_(*self.filter_clauses)
+            clause = self._build_where_clause()
             expr = expr.where(clause)
 
         return expr
@@ -137,9 +134,17 @@ class QuerySet:
         return await self.database.fetch_val(expr)
 
     async def count(self) -> int:
-        expr = self.build_select_expression()
-        expr = sqlalchemy.func.count().select().select_from(expr)
+        clause = self._build_where_clause()
+        expr = sqlalchemy.select([sqlalchemy.func.count()], whereclause=clause)
+        expr = expr.select_from(self.table)
         return await self.database.fetch_val(expr)
+
+    def _build_where_clause(self):
+        if len(self.filter_clauses) == 1:
+            clause = self.filter_clauses[0]
+        else:
+            clause = sqlalchemy.sql.and_(*self.filter_clauses)
+        return clause
 
     async def all(self, **kwargs):
         if kwargs:
@@ -177,7 +182,10 @@ class QuerySet:
 
         # Execute the insert, and return a new model instance.
         result = await self.database.execute(expr)
-        instance.pk = result
+
+        if result is not None:
+            instance.pk = result
+
         return instance
 
 
@@ -206,7 +214,6 @@ class MetaModel(pydantic.main.MetaModel):
 
 
 class Model(pydantic.BaseModel, metaclass=MetaModel):
-
     def __init__(self, **kwargs):
         if "pk" in kwargs:
             kwargs[self.Mapping.pk_name] = kwargs.pop("pk")

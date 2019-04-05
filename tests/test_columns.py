@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import functools
+import enum
 
 import databases
 import pytest
@@ -18,6 +19,18 @@ def time():
     return datetime.datetime.now().time()
 
 
+class IntEnum(enum.Enum):
+    one = 1
+    two = 2
+    three = 3
+
+
+class StrEnum(enum.Enum):
+    one = "uno"
+    two = "dos"
+    three = "tres"
+
+
 class Example(orm.Model):
     id: orm.Integer(primary_key=True) = None
     created: orm.DateTime() = None
@@ -26,6 +39,8 @@ class Example(orm.Model):
     description: orm.Text() = ""
     value: orm.Float(allow_null=True) = None
     data: orm.JSON() = {}
+    int_enum: orm.Enum(IntEnum, allow_null=True) = None
+    str_enum: orm.Enum(StrEnum, allow_null=True) = None
 
     class Mapping:
         table_name = "example"
@@ -78,8 +93,17 @@ async def test_model_crud():
         assert example.description == ""
         assert example.value is None
         assert example.data == {}
+        assert example.int_enum is None
+        assert example.str_enum is None
 
-        await example.update(data={"foo": 123}, value=123.456)
+        await example.update(
+            data={"foo": 123},
+            value=123.456,
+            int_enum=IntEnum.one,
+            str_enum=StrEnum.three,
+        )
         example = await Example.objects.get()
         assert example.value == 123.456
         assert example.data == {"foo": 123}
+        assert example.int_enum == IntEnum.one
+        assert example.str_enum == StrEnum.three

@@ -5,6 +5,7 @@ from typing import Type, Any
 
 import pydantic
 import sqlalchemy
+import enum
 
 
 class ColumnFactory(object):
@@ -45,6 +46,7 @@ def String(
     regex: str = None,
 ) -> Type[str]:
 
+    assert max_length is not None, "max_length required field (> 0)."
     assert max_length > 0, "max_length > 0 is required"
 
     namespace = dict(
@@ -256,3 +258,60 @@ def ForeignKey(to, *, allow_null: bool = False) -> Type[object]:
             return v
 
     return type("ForeignKey", (ForeignKeyField, ColumnFactory), namespace)
+
+
+def Enum(
+    enum_type: enum.Enum,
+    *,
+    primary_key: bool = False,
+    allow_null: bool = False,
+    index: bool = False,
+    unique: bool = False,
+) -> Type[enum.Enum]:
+
+    namespace = dict(
+        primary_key=primary_key,
+        allow_null=allow_null,
+        index=index,
+        unique=unique,
+        column_type=sqlalchemy.Enum(enum_type),
+    )
+
+    class EnumField(object):
+        @classmethod
+        def __get_validators__(cls) -> "CallableGenerator":
+            yield cls.validate
+
+        @classmethod
+        def validate(cls, v: Any) -> Any:
+            return v
+
+    return type("Enum", (EnumField, ColumnFactory), namespace)
+
+
+def StringArray(
+    *,
+    primary_key: bool = False,
+    allow_null: bool = False,
+    index: bool = False,
+    unique: bool = False,
+) -> Type[str]:
+
+    namespace = dict(
+        primary_key=primary_key,
+        allow_null=allow_null,
+        index=index,
+        unique=unique,
+        column_type=sqlalchemy.ARRAY(sqlalchemy.String),
+    )
+
+    class StringArrayField(object):
+        @classmethod
+        def __get_validators__(cls) -> "CallableGenerator":
+            yield cls.validate
+
+        @classmethod
+        def validate(cls, v: Any) -> Any:
+            return v
+
+    return type("StringArray", (StringArrayField, ColumnFactory), namespace)
