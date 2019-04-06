@@ -190,6 +190,14 @@ async def test_fk_filter():
         for track in tracks:
             assert track.album.name == "Malibu"
 
+        assert (await Track.objects.count()) == 6
+        assert (await Track.objects.filter(album=malibu).count()) == 3
+        assert (await Track.objects.filter(album=fantasies).count()) == 3
+        assert (
+            await Track.objects.filter(album__name__icontains="fan").count()
+            == 3
+        )
+
 
 @async_adapter
 async def test_multiple_fk():

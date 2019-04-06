@@ -1,48 +1,37 @@
-# ORM
+# Ormantic
 
-<p>
-<a href="https://travis-ci.org/encode/orm">
-    <img src="https://travis-ci.org/encode/orm.svg?branch=master" alt="Build Status">
-</a>
-<a href="https://codecov.io/gh/encode/orm">
-    <img src="https://codecov.io/gh/encode/orm/branch/master/graph/badge.svg" alt="Coverage">
-</a>
-<a href="https://pypi.org/project/orm/">
-    <img src="https://badge.fury.io/py/orm.svg" alt="Package version">
-</a>
-</p>
-
-The `orm` package is an async ORM for Python, with support for Postgres,
-MySQL, and SQLite. ORM is built with:
+The `ormantic` package is an async ORM for Python, with support for Postgres,
+MySQL, and SQLite. Ormatic is a fork from [`ORM`][orm] for the purpose of
+integrating with [`FastAPI`][fastapi] and is built with:
 
 * [SQLAlchemy core][sqlalchemy-core] for query building.
 * [`databases`][databases] for cross-database async support.
-* [`typesystem`][typesystem] for data validation.
+* [`pydantic`][pydantic] for data validation.
 
 Because ORM is built on SQLAlchemy core, you can use Alembic to provide
 database migrations.
-
-**ORM is still under development: We recommend pinning any dependencies with `orm~=0.1`**
 
 **Note**: Use `ipython` to try this from the console, since it supports `await`.
 
 ```python
 import databases
-import orm
 import sqlalchemy
+import ormantic as orm
 
 database = databases.Database("sqlite:///db.sqlite")
 metadata = sqlalchemy.MetaData()
 
 
 class Note(orm.Model):
-    __tablename__ = "notes"
-    __database__ = database
-    __metadata__ = metadata
+    id: orm.Integer(primary_key=True) = None
+    text: orm.String(max_length=100)
+    completed: orm.Boolean() = False
 
-    id = orm.Integer(primary_key=True)
-    text = orm.String(max_length=100)
-    completed = orm.Boolean(default=False)
+    class Mapping:
+        table_name = "notes"
+        database = database
+        metadata = metadata
+
 
 # Create the database
 engine = sqlalchemy.create_engine(str(database.url))
@@ -71,41 +60,44 @@ await note.update(completed=True)
 # .delete()
 await note.delete()
 
-# 'pk' always refers to the primary key
-note = await Note.objects.get(pk=2)
-note.pk  # 2
+note = await Note.objects.get(id=2)
+assert note.pk == note.id == 2
 ```
 
-ORM supports loading and filtering across foreign keys...
+Ormantic supports loading and filtering across foreign keys...
 
 ```python
 import databases
-import orm
 import sqlalchemy
+import ormantic as orm
 
 database = databases.Database("sqlite:///db.sqlite")
 metadata = sqlalchemy.MetaData()
 
 
 class Album(orm.Model):
-    __tablename__ = "album"
-    __metadata__ = metadata
-    __database__ = database
+    id: orm.Integer(primary_key=True) = None
+    name: orm.String(max_length=100)
 
-    id = orm.Integer(primary_key=True)
-    name = orm.String(max_length=100)
-
+    class Mapping:
+        table_name = "album"
+        metadata = metadata
+        database = database
 
 class Track(orm.Model):
-    __tablename__ = "track"
-    __metadata__ = metadata
-    __database__ = database
+    id: orm.Integer(primary_key=True) = None
+    album: orm.ForeignKey(Album)
+    title: orm.String(max_length=100)
+    position: orm.Integer()
 
-    id = orm.Integer(primary_key=True)
-    album = orm.ForeignKey(Album)
-    title = orm.String(max_length=100)
-    position = orm.Integer()
+    class Mapping:
+        table_name = "track"
+        metadata = metadata
+        database = database
 
+# Create the database
+engine = sqlalchemy.create_engine(str(database.url))
+metadata.create_all(engine)
 
 # Create some records to work with.
 malibu = await Album.objects.create(name="Malibu")
@@ -138,8 +130,7 @@ tracks = Track.objects.filter(album__name="Fantasies")
 assert len(tracks) == 2
 
 # Fetch instances, with a filter and operator across an FK relationship.
-tracks = Track.objects.filter(album__name__iexact="fantasies")
-assert len(tracks) == 2
+assert Track.objects.filter(album__name__iexact="fantasies").count() == 2
 ```
 
 ## Data types
@@ -148,30 +139,25 @@ The following keyword arguments are supported on all field types.
 
 * `primary_key`
 * `allow_null`
-* `default`
 * `index`
 * `unique`
 
-All fields are required unless one of the following is set:
+The following column types are supported:
 
-* `allow_null` - Creates a nullable column. Sets the default to `None`.
-* `allow_blank` - Allow empty strings to validate. Sets the default to `""`.
-* `default` - Set a default value for the field.
-
-The following column types are supported.
-See TypeSystem for [type-specific validation keyword arguments][typesystem-fields].
-
-* `orm.String(max_length)`
-* `orm.Text()`
 * `orm.Boolean()`
-* `orm.Integer()`
-* `orm.Float()`
 * `orm.Date()`
-* `orm.Time()`
 * `orm.DateTime()`
+* `orm.Enum()`
+* `orm.Float()`
+* `orm.Integer()`
 * `orm.JSON()`
+* `orm.String(max_length)`
+* `orm.StringArray()`
+* `orm.Text()`
+* `orm.Time()`
 
 [sqlalchemy-core]: https://docs.sqlalchemy.org/en/latest/core/
-[databases]: https://github.com/encode/databases
-[typesystem]: https://github.com/encode/typesystem
-[typesystem-fields]: https://www.encode.io/typesystem/fields/
+[orm]: https://github.com/encode/orm/
+[fastapi]: https://github.com/tiangolo/fastapi/
+[databases]: https://github.com/encode/databases/
+[pydantic]: https://github.com/samuelcolvin/pydantic/

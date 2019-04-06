@@ -38,13 +38,12 @@ class QuerySet:
     def table(self):
         return self.model_cls.Mapping.table
 
-    def build_select_expression(self):
+    def build_select_expression(self, functions=None):
         tables = [self.table]
         select_from = self.table
 
         for item in self._select_related:
             model_cls = self.model_cls
-            select_from = self.table
             for part in item.split("__"):
                 model_cls = model_cls.__fields__[part].type_.to
                 select_from = sqlalchemy.sql.join(
@@ -52,11 +51,14 @@ class QuerySet:
                 )
                 tables.append(model_cls.Mapping.table)
 
-        expr = sqlalchemy.sql.select(tables)
+        expr = sqlalchemy.sql.select(functions or tables)
         expr = expr.select_from(select_from)
 
         if self.filter_clauses:
-            clause = self._build_where_clause()
+            if len(self.filter_clauses) == 1:
+                clause = self.filter_clauses[0]
+            else:
+                clause = sqlalchemy.sql.and_(*self.filter_clauses)
             expr = expr.where(clause)
 
         return expr
@@ -134,17 +136,10 @@ class QuerySet:
         return await self.database.fetch_val(expr)
 
     async def count(self) -> int:
-        clause = self._build_where_clause()
-        expr = sqlalchemy.select([sqlalchemy.func.count()], whereclause=clause)
-        expr = expr.select_from(self.table)
+        expr = self.build_select_expression(
+            functions=[sqlalchemy.func.count()]
+        )
         return await self.database.fetch_val(expr)
-
-    def _build_where_clause(self):
-        if len(self.filter_clauses) == 1:
-            clause = self.filter_clauses[0]
-        else:
-            clause = sqlalchemy.sql.and_(*self.filter_clauses)
-        return clause
 
     async def all(self, **kwargs):
         if kwargs:
