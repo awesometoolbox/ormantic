@@ -93,11 +93,16 @@ async def test_model_crud():
         lookup = await User.objects.get()
         assert lookup == user
 
-        await user.update(name="Jane")
+        assert await user.update(name="Jane") == 1
         users = await User.objects.all()
         assert user.name == "Jane"
         assert user.pk is not None
         assert users == [user]
+
+        user.name = "Richard"
+        assert await user.update() == 1
+        users = await User.objects.all()
+        assert users[0].name == "Richard"
 
         await user.delete()
         users = await User.objects.all()
@@ -165,3 +170,30 @@ async def test_model_count():
 
         assert await User.objects.count() == 3
         assert await User.objects.filter(name__icontains="T").count() == 1
+
+
+@async_adapter
+async def test_model_insert():
+    async with database:
+        await User(name="Tom").insert()
+        await User(name="Jane").insert()
+        await User(name="Lucy").insert()
+
+        assert await User.objects.count() == 3
+        assert await User.objects.filter(name__icontains="T").count() == 1
+
+
+@async_adapter
+async def test_model_upsert():
+    async with database:
+        user = User(name="Ben")
+        assert user.pk is None
+        await user.upsert()
+        assert user.pk is not None
+
+        assert (await User.objects.get(id=user.id)).name == "Ben"
+
+        user.name = "Jerry"
+        await user.upsert()
+
+        assert (await User.objects.get(id=user.id)).name == "Jerry"

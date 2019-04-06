@@ -234,18 +234,29 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
         else:
             super(Model, self).__setattr__(name, value)
 
-    async def update(self, **kwargs):
+    async def update(self, *columns, **new_values):
+        # Get self column values and update with new_values provided.
+        data = self.table_dict()
+        data.update(new_values)
+
+        # Filter data by columns + new value keys, only if columns specified.
+        if columns:
+            columns = set(columns).union(new_values.keys())
+            data = dict((k, v) for k, v in data.items() if k in columns)
+
         # Build the update expression.
         pk_column = getattr(self.Mapping.table.c, self.Mapping.pk_name)
         expr = self.Mapping.table.update()
-        expr = expr.values(**kwargs).where(pk_column == self.pk)
+        expr = expr.values(**data).where(pk_column == self.pk)
 
         # Perform the update.
-        await self.Mapping.database.execute(expr)
+        rows_updated = await self.Mapping.database.execute(expr)
 
         # Update the model instance.
-        for key, value in kwargs.items():
+        for key, value in new_values.items():
             setattr(self, key, value)
+
+        return rows_updated
 
     async def delete(self):
         # Build the delete expression.
@@ -266,6 +277,27 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
         # Update the instance.
         for key, value in dict(row).items():
             setattr(self, key, value)
+
+    async def insert(self):
+        # Build the insert expression.
+        expr = self.Mapping.table.insert()
+        expr = expr.values(**self.table_dict())
+
+        # Execute the insert, and return a new model instance.
+        result = await self.Mapping.database.execute(expr)
+
+        if result is not None:
+            setattr(self, "pk", result)
+
+        return result
+
+    async def upsert(self):
+        rows_updated = 0
+        if self.pk is not None:
+            rows_updated = await self.update()
+
+        if rows_updated == 0:
+            await self.insert()
 
     @classmethod
     def from_row(cls, row, select_related=None):
