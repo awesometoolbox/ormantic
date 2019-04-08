@@ -183,6 +183,28 @@ class QuerySet:
 
         return instance
 
+    async def insert_many(
+        self, rows: typing.Iterable["Model"], batch_size=1000
+    ):
+        values = []
+        expr = self.table.insert()
+        for row in rows:
+            values.append(row.table_dict())
+            if len(values) == batch_size:
+                await self.database.execute_many(expr, values)
+                values = []
+
+        if len(values):
+            await self.database.execute_many(expr, values)
+
+    async def delete_many(self, **kwargs):
+        if kwargs:
+            return await self.filter(**kwargs).delete_many()
+
+        expr = self.build_select_expression()
+        expr = self.table.delete(whereclause=expr._whereclause)
+        await self.database.execute(expr)
+
 
 class MetaModel(pydantic.main.MetaModel):
     @typing.no_type_check

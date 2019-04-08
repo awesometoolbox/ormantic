@@ -184,6 +184,28 @@ async def test_model_insert():
 
 
 @async_adapter
+async def test_model_insert_delete_many():
+    async with database:
+        assert await User.objects.count() == 0
+
+        await User.objects.insert_many(
+            [User(name="Tom"), User(name="Jane"), User(name="Lucy")], 2
+        )
+
+        assert await User.objects.count() == 3
+        assert await User.objects.filter(name__icontains="T").count() == 1
+
+        await User.objects.delete_many(name__icontains="T")
+        assert await User.objects.count() == 2
+
+        await User.objects.filter(name__icontains="J").delete_many()
+        assert await User.objects.count() == 1
+
+        await User.objects.delete_many()
+        assert await User.objects.count() == 0
+
+
+@async_adapter
 async def test_model_upsert():
     async with database:
         user = User(name="Ben")
