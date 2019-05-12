@@ -261,7 +261,7 @@ def ForeignKey(to, *, allow_null: bool = False) -> Type[object]:
 
 
 def Enum(
-    enum_type: enum.Enum,
+    enum_type: Type[enum.Enum],
     *,
     primary_key: bool = False,
     allow_null: bool = False,

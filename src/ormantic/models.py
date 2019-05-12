@@ -318,7 +318,7 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
         if self.pk is not None:
             rows_updated = await self.update()
 
-        if rows_updated == 0:
+        if rows_updated in {0, None}:
             await self.insert()
 
     @classmethod
