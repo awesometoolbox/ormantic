@@ -1,7 +1,7 @@
 # Ormantic
 
 The `ormantic` package is an async ORM for Python, with support for Postgres,
-MySQL, and SQLite. Ormatic is a fork from [`ORM`][orm] for the purpose of
+MySQL, and SQLite. Ormantic is a fork from [`ORM`][orm] for the purpose of
 integrating with [`FastAPI`][fastapi] and is built with:
 
 * [SQLAlchemy core][sqlalchemy-core] for query building.
