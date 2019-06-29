@@ -7,6 +7,7 @@ from pydantic.class_validators import Validator, make_generic_validator
 from .exceptions import MultipleMatches, NoMatch
 
 FILTER_OPERATORS = {
+    "any": "any_",
     "exact": "__eq__",
     "iexact": "ilike",
     "contains": "like",
@@ -37,6 +38,10 @@ class QuerySet:
     @property
     def table(self):
         return self.model_cls.Mapping.table
+
+    @property
+    def pk_name(self):
+        return self.model_cls.Mapping.pk_name
 
     def build_select_expression(self, functions=None):
         tables = [self.table]
@@ -170,10 +175,16 @@ class QuerySet:
     async def create(self, **kwargs):
         # instance and validation
         instance = self.model_cls(**kwargs)
+        data = instance.table_dict()
+
+        # pop id if None
+        pk_column = getattr(self.table.c, self.pk_name)
+        if data.get(pk_column, -1) is None:
+            data.pop(pk_column)
 
         # Build the insert expression.
         expr = self.table.insert()
-        expr = expr.values(**instance.table_dict())
+        expr = expr.values(**data)
 
         # Execute the insert, and return a new model instance.
         result = await self.database.execute(expr)
@@ -231,19 +242,23 @@ class MetaModel(pydantic.main.MetaModel):
 
 
 class Model(pydantic.BaseModel, metaclass=MetaModel):
-    def __init__(self, **kwargs):
-        if "pk" in kwargs:
-            kwargs[self.Mapping.pk_name] = kwargs.pop("pk")
 
-        super().__init__(**kwargs)
+    # noinspection PyMissingConstructor
+    def __init__(self, **data):
+        if "pk" in data:
+            data[self.Mapping.pk_name] = data.pop("pk")
 
-    def _process_values(self, input_data: typing.Any) -> "DictStrAny":
-        pk_only = input_data.pop("__pk_only__", False)
-        if pk_only:
-            v, _ = pydantic.validate_model(self, input_data, raise_exc=False)
-        else:
-            v = pydantic.validate_model(self, input_data)
-        return v
+        if typing.TYPE_CHECKING:
+            self.__values__: Dict[str, Any] = {}
+            self.__fields_set__: "SetStr" = set()
+
+        pk_only = data.pop("__pk_only__", False)
+        values, fields_set, _ = pydantic.validate_model(
+            self, data, raise_exc=not pk_only
+        )
+
+        object.__setattr__(self, "__values__", values)
+        object.__setattr__(self, "__fields_set__", fields_set)
 
     @property
     def pk(self):
