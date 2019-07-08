@@ -111,6 +111,27 @@ def Integer(
     )
     return type("Integer", (pydantic.ConstrainedInt, ColumnFactory), namespace)
 
+def BigInteger(
+    *,
+    primary_key: bool = False,
+    allow_null: bool = False,
+    index: bool = False,
+    unique: bool = False,
+    minimum: int = None,
+    maximum: int = None,
+    multiple_of: int = None,
+) -> Type[int]:
+    namespace = dict(
+        primary_key=primary_key,
+        allow_null=allow_null,
+        index=index,
+        unique=unique,
+        ge=minimum,
+        le=maximum,
+        multiple_of=multiple_of,
+        column_type=sqlalchemy.BigInteger(),
+    )
+    return type("BigInteger", (pydantic.ConstrainedInt, ColumnFactory), namespace)
 
 def Float(
     *,
