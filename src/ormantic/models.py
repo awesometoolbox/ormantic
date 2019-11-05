@@ -253,9 +253,11 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
             self.__fields_set__: typing.Set[str] = set()
 
         pk_only = data.pop("__pk_only__", False)
-        values, fields_set, _ = pydantic.validate_model(
-            self, data, raise_exc=not pk_only
+        values, fields_set, error = pydantic.validate_model(
+            self, data
         )
+        if not pk_only and error:
+            raise error
 
         object.__setattr__(self, "__values__", values)
         object.__setattr__(self, "__fields_set__", fields_set)
