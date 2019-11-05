@@ -249,7 +249,7 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
             data[self.Mapping.pk_name] = data.pop("pk")
 
         if typing.TYPE_CHECKING:
-            self.__values__: typing.Dict[str, typing.Any] = {}
+            self.__dict__: typing.Dict[str, typing.Any] = {}
             self.__fields_set__: typing.Set[str] = set()
 
         pk_only = data.pop("__pk_only__", False)
@@ -370,7 +370,7 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
 
     def table_dict(self) -> typing.Dict[str, typing.Any]:
         get_key = self._get_key_factory(False)
-        get_key = partial(get_key, self.fields)
+        get_key = partial(get_key, self.__fields__)
 
         def _get_td_value(v: typing.Any) -> typing.Any:
             if isinstance(v, Model):
@@ -387,7 +387,7 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
                 return v
 
         def _td_iter():
-            for k, v in self.__values__.items():
+            for k, v in self.__dict__.items():
                 yield k, _get_td_value(v)
 
         return {get_key(k): v for k, v in _td_iter()}
