@@ -259,7 +259,7 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
         if not pk_only and error:
             raise error
 
-        object.__setattr__(self, "__values__", values)
+        object.__setattr__(self, "__dict__", values)
         object.__setattr__(self, "__fields_set__", fields_set)
 
     @property
