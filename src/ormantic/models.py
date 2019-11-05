@@ -217,7 +217,7 @@ class QuerySet:
         await self.database.execute(expr)
 
 
-class MetaModel(pydantic.main.MetaModel):
+class MetaModel(pydantic.main.ModelMetaclass):
     @typing.no_type_check
     def __new__(mcs: type, name, bases, namespace):
         new_model = super().__new__(mcs, name, bases, namespace)

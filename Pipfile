@@ -4,12 +4,14 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-ormantic = {editable = true, path = "."}
+pydantic = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 aiosqlite = "*"
 pytest = "*"
 ipython = "*"
+databases = {extras = ["aiosqlite"],version = "*"}
 
 [requires]
 python_version = "3.6"
