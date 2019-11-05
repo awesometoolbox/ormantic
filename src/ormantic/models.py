@@ -249,8 +249,8 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
             data[self.Mapping.pk_name] = data.pop("pk")
 
         if typing.TYPE_CHECKING:
-            self.__values__: Dict[str, Any] = {}
-            self.__fields_set__: "SetStr" = set()
+            self.__values__: typing.Dict[str, typing.Any] = {}
+            self.__fields_set__: typing.Set[str] = set()
 
         pk_only = data.pop("__pk_only__", False)
         values, fields_set, _ = pydantic.validate_model(
@@ -368,7 +368,7 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
 
         return cls(**item)
 
-    def table_dict(self) -> "DictStrAny":
+    def table_dict(self) -> typing.Dict[str, typing.Any]:
         get_key = self._get_key_factory(False)
         get_key = partial(get_key, self.fields)
 
