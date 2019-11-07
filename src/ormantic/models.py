@@ -6,6 +6,11 @@ from functools import partial
 from pydantic.class_validators import Validator, make_generic_validator
 from .exceptions import MultipleMatches, NoMatch
 
+if hasattr(pydantic.main, 'MetaModel'):
+    ModelMeta = pydantic.main.MetaModel
+else:
+    ModelMeta = pydantic.main.ModelMetaclass
+
 FILTER_OPERATORS = {
     "any": "any_",
     "exact": "__eq__",
@@ -217,7 +222,7 @@ class QuerySet:
         await self.database.execute(expr)
 
 
-class MetaModel(pydantic.main.ModelMetaclass):
+class MetaModel(ModelMeta):
     @typing.no_type_check
     def __new__(mcs: type, name, bases, namespace):
         new_model = super().__new__(mcs, name, bases, namespace)
