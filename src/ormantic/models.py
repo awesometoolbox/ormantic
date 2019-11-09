@@ -183,9 +183,8 @@ class QuerySet:
         data = instance.table_dict()
 
         # pop id if None
-        pk_column = getattr(self.table.c, self.pk_name)
-        if data.get(pk_column, -1) is None:
-            data.pop(pk_column)
+        if data.get(self.pk_name, -1) is None:
+            data.pop(self.pk_name)
 
         # Build the insert expression.
         expr = self.table.insert()
