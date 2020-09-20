@@ -19,7 +19,6 @@ FILTER_OPERATORS = {
     "lte": "__le__",
 }
 
-
 class QuerySet:
     def __init__(
         self, model_cls=None, filter_clauses=None, select_related=None
@@ -217,7 +216,7 @@ class QuerySet:
         await self.database.execute(expr)
 
 
-class MetaModel(pydantic.main.MetaModel):
+class MetaModel(pydantic.main.ModelMetaclass):
     @typing.no_type_check
     def __new__(mcs: type, name, bases, namespace):
         new_model = super().__new__(mcs, name, bases, namespace)
@@ -241,7 +240,7 @@ class MetaModel(pydantic.main.MetaModel):
         return new_model
 
 
-class Model(pydantic.BaseModel, metaclass=MetaModel):
+class Model(pydantic.main.BaseModel, metaclass=MetaModel):
 
     # noinspection PyMissingConstructor
     def __init__(self, **data):
@@ -256,7 +255,7 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
         values, fields_set, _ = pydantic.validate_model(
             self, data, raise_exc=not pk_only
         )
-
+        self.prueba = "aaa"
         object.__setattr__(self, "__values__", values)
         object.__setattr__(self, "__fields_set__", fields_set)
 
@@ -266,6 +265,9 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
 
     @typing.no_type_check
     def __setattr__(self, name, value):
+        print("golaaa")
+        print("name "+ str(name))
+        print("name "+ str(value))
         if name == "pk":
             setattr(self, self.Mapping.pk_name, value)
         else:

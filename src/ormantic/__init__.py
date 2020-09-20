@@ -15,7 +15,7 @@ from ormantic.fields import (
 )
 from ormantic.models import Model
 
-__version__ = "0.0.29"
+__version__ = "0.0.30"
 __all__ = [
     "NoMatch",
     "MultipleMatches",
