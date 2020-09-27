@@ -265,9 +265,6 @@ class Model(pydantic.main.BaseModel, metaclass=MetaModel):
 
     @typing.no_type_check
     def __setattr__(self, name, value):
-        print("golaaa")
-        print("name "+ str(name))
-        print("name "+ str(value))
         if name == "pk":
             setattr(self, self.Mapping.pk_name, value)
         else:
