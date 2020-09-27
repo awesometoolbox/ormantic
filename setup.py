@@ -38,7 +38,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Awesome Toolbox",
     author_email="info@awesometoolbox.com",
-    packages=find_packages("src/"),
+    packages=find_packages("src"),
     package_data={PACKAGE: ["py.typed"]},
     package_dir={'': 'src'},
     data_files=[("", ["LICENSE.md"])],
