@@ -1,3 +1,11 @@
+# Notice
+
+This project has been archived. Please check out this fork of Ormantic that is currently (March 2021) being maintained:
+
+https://github.com/collerek/ormar
+
+---
+
 # Ormantic
 
 The `ormantic` package is an async ORM for Python, with support for Postgres,
