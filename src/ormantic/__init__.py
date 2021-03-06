@@ -3,6 +3,7 @@ from ormantic.fields import (
     Boolean,
     Date,
     DateTime,
+    Decimal,
     Enum,
     Float,
     ForeignKey,
@@ -15,7 +16,7 @@ from ormantic.fields import (
 )
 from ormantic.models import Model
 
-__version__ = "0.0.29"
+__version__ = "0.0.32"
 __all__ = [
     "NoMatch",
     "MultipleMatches",

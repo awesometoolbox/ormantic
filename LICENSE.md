@@ -1,5 +1,6 @@
 Copyright © 2019, [Encode OSS Ltd](https://www.encode.io/).
 Copyright © 2019, [Awesome Toolbox](https://www.awesometoolbox.com/).
+Copyright © 2019, [MushroomMaula](https://github.com/MushroomMaula).
 
 All rights reserved.
 

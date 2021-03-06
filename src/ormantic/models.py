@@ -6,6 +6,11 @@ from functools import partial
 from pydantic.class_validators import Validator, make_generic_validator
 from .exceptions import MultipleMatches, NoMatch
 
+if hasattr(pydantic.main, 'MetaModel'):
+    ModelMeta = pydantic.main.MetaModel
+else:
+    ModelMeta = pydantic.main.ModelMetaclass
+
 FILTER_OPERATORS = {
     "any": "any_",
     "exact": "__eq__",
@@ -178,9 +183,8 @@ class QuerySet:
         data = instance.table_dict()
 
         # pop id if None
-        pk_column = getattr(self.table.c, self.pk_name)
-        if data.get(pk_column, -1) is None:
-            data.pop(pk_column)
+        if data.get(self.pk_name, -1) is None:
+            data.pop(self.pk_name)
 
         # Build the insert expression.
         expr = self.table.insert()
@@ -217,7 +221,7 @@ class QuerySet:
         await self.database.execute(expr)
 
 
-class MetaModel(pydantic.main.MetaModel):
+class MetaModel(ModelMeta):
     @typing.no_type_check
     def __new__(mcs: type, name, bases, namespace):
         new_model = super().__new__(mcs, name, bases, namespace)
@@ -249,15 +253,17 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
             data[self.Mapping.pk_name] = data.pop("pk")
 
         if typing.TYPE_CHECKING:
-            self.__values__: Dict[str, Any] = {}
-            self.__fields_set__: "SetStr" = set()
+            self.__dict__: typing.Dict[str, typing.Any] = {}
+            self.__fields_set__: typing.Set[str] = set()
 
         pk_only = data.pop("__pk_only__", False)
-        values, fields_set, _ = pydantic.validate_model(
-            self, data, raise_exc=not pk_only
+        values, fields_set, error = pydantic.validate_model(
+            self, data
         )
+        if not pk_only and error:
+            raise error
 
-        object.__setattr__(self, "__values__", values)
+        object.__setattr__(self, "__dict__", values)
         object.__setattr__(self, "__fields_set__", fields_set)
 
     @property
@@ -368,9 +374,9 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
 
         return cls(**item)
 
-    def table_dict(self) -> "DictStrAny":
+    def table_dict(self) -> typing.Dict[str, typing.Any]:
         get_key = self._get_key_factory(False)
-        get_key = partial(get_key, self.fields)
+        get_key = partial(get_key, self.__fields__)
 
         def _get_td_value(v: typing.Any) -> typing.Any:
             if isinstance(v, Model):
@@ -387,7 +393,7 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
                 return v
 
         def _td_iter():
-            for k, v in self.__values__.items():
+            for k, v in self.__dict__.items():
                 yield k, _get_td_value(v)
 
         return {get_key(k): v for k, v in _td_iter()}

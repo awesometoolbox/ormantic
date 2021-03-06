@@ -1,6 +1,7 @@
 import json
 import re
 from datetime import datetime, date, time
+from decimal import Decimal as D
 from typing import Type, Any
 
 import pydantic
@@ -133,6 +134,37 @@ def Float(
         column_type=sqlalchemy.Float(),
     )
     return type("Float", (pydantic.ConstrainedFloat, ColumnFactory), namespace)
+
+
+def Decimal(
+    *,
+    primary_key: bool = False,
+    allow_null: bool = False,
+    index: bool = False,
+    unique: bool = False,
+    minimum: float = None,
+    maximum: float = None,
+    multiple_of: int = None,
+    precision: int = None,
+    scale: int = None,
+    max_digits: int = None,
+    decimal_places: int = None,
+):
+    namespace = dict(
+        primary_key=primary_key,
+        allow_null=allow_null,
+        index=index,
+        unique=unique,
+        ge=minimum,
+        le=maximum,
+        multiple_of=multiple_of,
+        column_type=sqlalchemy.types.DECIMAL(precision=precision, scale=scale),
+        precision=precision,
+        scale=scale,
+        max_digits=max_digits,
+        decimal_places=decimal_places,
+    )
+    return type("Decimal", (pydantic.ConstrainedDecimal, ColumnFactory), namespace)
 
 
 def Boolean(
