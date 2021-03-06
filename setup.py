@@ -38,11 +38,11 @@ setup(
     long_description_content_type="text/markdown",
     author="Awesome Toolbox",
     author_email="info@awesometoolbox.com",
-    packages=find_packages("src/"),
+    packages=find_packages("src"),
     package_data={PACKAGE: ["py.typed"]},
     package_dir={'': 'src'},
     data_files=[("", ["LICENSE.md"])],
-    install_requires=["databases>=0.2.1", "pydantic==0.29"],
+    install_requires=["databases>=0.2.1", "pydantic>=0.30"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Web Environment",

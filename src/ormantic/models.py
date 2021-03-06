@@ -19,7 +19,6 @@ FILTER_OPERATORS = {
     "lte": "__le__",
 }
 
-
 class QuerySet:
     def __init__(
         self, model_cls=None, filter_clauses=None, select_related=None
@@ -175,7 +174,7 @@ class QuerySet:
     async def create(self, **kwargs):
         # instance and validation
         instance = self.model_cls(**kwargs)
-        data = instance.table_dict()
+        data = instance.dict(by_alias=False)
 
         # pop id if None
         pk_column = getattr(self.table.c, self.pk_name)
@@ -200,7 +199,7 @@ class QuerySet:
         values = []
         expr = self.table.insert()
         for row in rows:
-            values.append(row.table_dict())
+            values.append(row.dict(by_alias=False))
             if len(values) == batch_size:
                 await self.database.execute_many(expr, values)
                 values = []
@@ -217,7 +216,7 @@ class QuerySet:
         await self.database.execute(expr)
 
 
-class MetaModel(pydantic.main.MetaModel):
+class MetaModel(pydantic.main.ModelMetaclass):
     @typing.no_type_check
     def __new__(mcs: type, name, bases, namespace):
         new_model = super().__new__(mcs, name, bases, namespace)
@@ -241,7 +240,7 @@ class MetaModel(pydantic.main.MetaModel):
         return new_model
 
 
-class Model(pydantic.BaseModel, metaclass=MetaModel):
+class Model(pydantic.main.BaseModel, metaclass=MetaModel):
 
     # noinspection PyMissingConstructor
     def __init__(self, **data):
@@ -254,10 +253,10 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
 
         pk_only = data.pop("__pk_only__", False)
         values, fields_set, _ = pydantic.validate_model(
-            self, data, raise_exc=not pk_only
+            self, data, not pk_only
         )
-
-        object.__setattr__(self, "__values__", values)
+        
+        object.__setattr__(self, "__dict__", values)
         object.__setattr__(self, "__fields_set__", fields_set)
 
     @property
@@ -273,7 +272,7 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
 
     async def update(self, *columns, **new_values):
         # Get self column values and update with new_values provided.
-        data = self.table_dict()
+        data = self.dict(by_alias=False)
         data.update(new_values)
 
         # Filter data by columns + new value keys, only if columns specified.
@@ -318,7 +317,7 @@ class Model(pydantic.BaseModel, metaclass=MetaModel):
     async def insert(self):
         # Build the insert expression.
         expr = self.Mapping.table.insert()
-        expr = expr.values(**self.table_dict())
+        expr = expr.values(**self.dict(by_alias=False))
 
         # Execute the insert, and return a new model instance.
         result = await self.Mapping.database.execute(expr)
