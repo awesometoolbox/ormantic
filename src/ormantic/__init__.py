@@ -1,6 +1,7 @@
 from ormantic.exceptions import MultipleMatches, NoMatch
 from ormantic.fields import (
     Boolean,
+    BigInteger,
     Date,
     DateTime,
     Enum,
@@ -20,6 +21,7 @@ __all__ = [
     "NoMatch",
     "MultipleMatches",
     "Boolean",
+    "BigInteger",
     "Date",
     "Enum",
     "DateTime",
