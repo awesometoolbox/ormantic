@@ -1,3 +1,7 @@
+# Note
+This repo was created as a fork of [awesometoolbox/ormantic](https://github.com/awesometoolbox/ormantic) to fix some issues.
+It is not being developed anymore. Have a look at [collerek/ormar](https://github.com/collerek/ormar) for an actively maintained fork.
+
 # Ormantic
 
 The `ormantic` package is an async ORM for Python, with support for Postgres,
